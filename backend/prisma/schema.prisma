@@ -1,0 +1,215 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum credentials {
+  YANDEX
+  EMAIL
+  VK
+}
+
+model User {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  password        String            @map("password_hash")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  role            Role              @default(USER)
+  credentials     credentials       @default(EMAIL)
+  jwtRefreshToken String?           @map("jwt_refresh_token")
+  picture         String?           @default("/uploads/default-user-img.png")
+  cart            cart[]
+  review          review[]
+  review_reaction review_reaction[]
+  order           order[]
+  favorites       favorites[]
+  name            String
+
+  @@map("users")
+}
+
+model cart {
+  id       String    @id @default(cuid())
+  products product[]
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@map("carts")
+}
+
+model favorites {
+  id       String    @id @default(cuid())
+  products product[]
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@map("favorites")
+}
+
+model review {
+  id              String            @id @default(cuid())
+  productId       String
+  product         product           @relation(fields: [productId], references: [id])
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  text            String
+  rating          Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  reviewImage     reviewImage[]
+  review_reaction review_reaction[]
+
+  @@map("reviews")
+}
+
+model reviewImage {
+  id       String  @id @default(cuid())
+  image    String?
+  reviewId String
+  review   review  @relation(fields: [reviewId], references: [id])
+
+  @@map("review_images")
+}
+
+enum reviewType {
+  POSITIVE
+  NEGATIVE
+}
+
+model review_reaction {
+  id       String     @id @default(cuid())
+  reviewId String
+  review   review     @relation(fields: [reviewId], references: [id])
+  type     reviewType
+  userId   String
+  user     User       @relation(fields: [userId], references: [id])
+
+  @@map("review_reactions")
+}
+
+enum statusOrder {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model order {
+  id                      String      @id @default(cuid())
+  userId                  String
+  user                    User        @relation(fields: [userId], references: [id])
+  products                product[]
+  status                  statusOrder
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  priceCountedOnConfirmed Int?        @map("price_counted_on_confirmed")
+
+  @@map("orders")
+}
+
+model category {
+  id            String        @id @default(cuid())
+  name          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  subCategories subCategory[]
+
+  @@map("categories")
+}
+
+model brand {
+  id            String          @id @default(cuid())
+  name          String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt()
+  ProductFamily ProductFamily[]
+
+  @@map("brands")
+}
+
+model subCategory {
+  id                String              @id @default(cuid())
+  name              String
+  categories        category[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  characteristicKey characteristicKey[]
+  ProductFamily     ProductFamily[]
+
+  @@map("sub_categories")
+}
+
+model characteristicKey {
+  id                    String                 @id @default(cuid())
+  key                   String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  characterisiticValues characterisiticValue[]
+  subCategory           subCategory?           @relation(fields: [subCategoryId], references: [id])
+  subCategoryId         String?
+
+  @@map("characteristic_key_rows")
+}
+
+model characterisiticValue {
+  id        String   @id @default(cuid())
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId           String
+  product             product            @relation(fields: [productId], references: [id])
+  characteristicKey   characteristicKey? @relation(fields: [characteristicKeyId], references: [id])
+  characteristicKeyId String?
+
+  @@map("characteristic_value_rows")
+}
+
+model ProductFamily {
+  id            String       @id @default(cuid())
+  products      product[]
+  brandId       String?
+  brand         brand?       @relation(fields: [brandId], references: [id])
+  subCategoryId String?
+  subCategory   subCategory? @relation(fields: [subCategoryId], references: [id])
+}
+
+model product {
+  id                   String   @id @default(cuid())
+  name                 String
+  priceWithoutDiscount Int      @map("price_without_discount")
+  priceDiscount        Int?     @map("price_discount")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  characterisiticValueRow characterisiticValue[]
+  cart                    cart?                  @relation(fields: [cartId], references: [id])
+  cartId                  String?
+  review                  review[]
+  order                   order?                 @relation(fields: [orderId], references: [id])
+  orderId                 String?
+  ProductFamily           ProductFamily?         @relation(fields: [productFamilyId], references: [id])
+  productFamilyId         String?
+  favorites               favorites?             @relation(fields: [favoritesId], references: [id])
+  favoritesId             String?
+
+  @@map("products")
+}
