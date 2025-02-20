@@ -7,7 +7,7 @@ import { User } from '@prisma/client';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUserById(id: string): Promise<User | NotFoundException> {
+  async getUserById(id: string): Promise<User | null> {
     const userCandidate = await this.prisma.user.findUnique({
       include: {
         order: true,
@@ -18,13 +18,10 @@ export class UserService {
         id: id,
       },
     });
-    if (!userCandidate) {
-      throw new NotFoundException('User not found');
-    }
     return userCandidate;
   }
 
-  async getUserByEmail(email: string): Promise<User | NotFoundException> {
+  async getUserByEmail(email: string): Promise<User | null> {
     const userCandidate = await this.prisma.user.findUnique({
       include: {
         order: true,
@@ -35,25 +32,32 @@ export class UserService {
         email: email,
       },
     });
-    if (!userCandidate) {
-      throw new NotFoundException('User not found');
-    }
     return userCandidate;
   }
 
 
-  async createUser(dto: CreateUserDto): Promise<User | BadRequestException> {
-    const isUserExist = await this.getUserByEmail(dto.email)
-    if(isUserExist) throw new BadRequestException('Пользователь с таким email уже существует! ')
-    const newUserCandidate = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashPassword(dto.password),
-        name: dto.name,
-        //@ts-ignore we have default value in db so we pass it even if it's undefined
-        picture: dto.picture,
-      },
-    });
-    return newUserCandidate;
+  async createUser(dto: CreateUserDto): Promise<User> {
+    try {
+      const isUserExist = await this.getUserByEmail(dto.email);
+      if (isUserExist) {
+        throw new BadRequestException('User with this email already exists');
+      }
+
+      const newUser = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          password: hashPassword(dto.password),
+          name: dto.name,
+          picture: dto.picture || '/uploads/default-user-img.png',
+        },
+      });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = newUser;
+      return userWithoutPassword as User;
+    } catch (error) {
+      console.error('Create user error:', error);
+      throw error;
+    }
   }
 }

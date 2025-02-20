@@ -4,10 +4,29 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService extends PrismaClient {
   constructor() {
-    super();
+    super({
+      log: [
+        {
+          emit: 'event',
+          level: 'query',
+        },
+        {
+          emit: 'stdout',
+          level: 'error',
+        },
+        {
+          emit: 'stdout',
+          level: 'info',
+        },
+        {
+          emit: 'stdout',
+          level: 'warn',
+        },
+      ],
+    });
   }
 
-  async onModuleInit(){
+  async onModuleInit() {
     await this.$connect();
   }
 

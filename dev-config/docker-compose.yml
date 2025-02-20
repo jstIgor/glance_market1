@@ -12,8 +12,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB} 
+      - POSTGRES_HOST=db_postgres
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_postgres:${POSTGRES_PORT}/${POSTGRES_DB} 
       - CLIENT_URL=http://localhost:${CLIENT_PORT}
       - SERVER_DOMAIN=${SERVER_DOMAIN}
       - PORT=${BACKEND_PORT}
@@ -23,6 +23,9 @@ services:
       - VKONTAKTE_CLIENT_ID=${VKONTAKTE_CLIENT_ID}
       - VKONTAKTE_CLIENT_SECRET=${VKONTAKTE_CLIENT_SECRET}
       - SERVER_URL=${SERVER_URL}
+    depends_on:
+      - db_postgres
+    
   db_postgres:
     image: postgres:15
     environment:
@@ -30,11 +33,17 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_HOST=db_postgres
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
 
 volumes:
   postgres_data:

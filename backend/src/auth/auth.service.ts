@@ -10,6 +10,8 @@ import { AuthDto, OAuthLoginDto, RegisterDto } from './dto/auth.dto';
 import { comparePassword } from 'src/lib/utils/hash';
 import { User } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -27,16 +29,33 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const user = await this.userService.createUser({
-      email: dto.email,
-      password: dto.password,
-      name: dto.name,
-    });
-    const tokens = this.generateTokens((user as User).id);
-    return {
-      user,
-      ...tokens,
-    };
+    try {
+      const user = await this.userService.createUser({
+        email: dto.email,
+        password: dto.password,
+        name: dto.name,
+      });
+
+      if (!user) {
+        throw new InternalServerErrorException('Failed to create user');
+      }
+
+      const tokens = this.generateTokens((user as User).id);
+      return {
+        user,
+        ...tokens,
+      };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        // Handle Prisma-specific errors
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Email already exists');
+        }
+      }
+      // Log the error for debugging
+      console.error('Registration error:', error);
+      throw new InternalServerErrorException('Registration failed');
+    }
   }
 
   private generateTokens(userId: string) {
@@ -53,6 +72,9 @@ export class AuthService {
 
   private async validateUser(dto: AuthDto): Promise<User | NotFoundException> {
       const user = await this.userService.getUserByEmail(dto.email);
+      if(!user){
+        throw new NotFoundException('Пользователь с таким email не найден');
+      }
       const isValidPassword = comparePassword(
         dto.password,
         (user as User).password,
