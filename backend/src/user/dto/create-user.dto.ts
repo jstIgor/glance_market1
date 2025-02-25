@@ -7,7 +7,7 @@ export class CreateUserDto {
   @IsEmail({}, { message: 'Email must be a valid email' })
   email: string
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: 'pasGGsword123' })
   @IsString({ message: 'Password must be a string' })
   @IsNotEmpty({ message: 'Password is required' })
   @IsStrongPassword({

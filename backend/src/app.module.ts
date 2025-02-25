@@ -8,6 +8,7 @@ import { getJwtConfig } from './config/jwtConfig';
 import { YandexStrategy } from './auth/strategies/yandex.strategy';
 import { VkontakteStrategy } from './auth/strategies/vkontakte.strategy';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
+import { CatalogModule } from './catalog/catalog.module';
 @Module({
   imports: [
     UserModule,
@@ -20,7 +21,8 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: getJwtConfig,
-    })
+    }),
+    CatalogModule
   ],
   controllers: [],
   providers: [

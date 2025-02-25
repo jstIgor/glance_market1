@@ -10,14 +10,15 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   app.setGlobalPrefix('api');
   const config = new DocumentBuilder()
-    .setTitle('Glance Market API')
-    .setDescription('API документация для Glance Market')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth', 'Аутентификация и авторизация')
-    .addTag('users', 'Операции с пользователями')
-    .build()
-  
+  .setTitle('Glance Market API')
+  .setDescription('API документация для Glance Market')
+  .setVersion('1.0')
+  .addBearerAuth()
+  .addTag('auth', 'Аутентификация и авторизация')
+  .addTag('users', 'Операции с пользователями')
+  .addServer(configService.getOrThrow('SERVER_URL'))
+  .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
@@ -30,11 +31,14 @@ async function bootstrap() {
   );
   app.use(cookieParser());
   app.enableCors({
-    origin: [configService.getOrThrow('CLIENT_URL')],
+    origin: '*',
     credentials: true,
     exposedHeaders: ['set-cookie'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   });
 
   await app.listen(Number(configService.getOrThrow('PORT')) ?? 3000);
+  console.log(`Server is running on port ${configService.getOrThrow('PORT')}`);
 }
 bootstrap();

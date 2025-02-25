@@ -22,7 +22,7 @@ services:
       - YANDEX_CLIENT_SECRET=${YANDEX_CLIENT_SECRET}
       - VKONTAKTE_CLIENT_ID=${VKONTAKTE_CLIENT_ID}
       - VKONTAKTE_CLIENT_SECRET=${VKONTAKTE_CLIENT_SECRET}
-      - SERVER_URL=${SERVER_URL}
+      - SERVER_URL=http://localhost:${BACKEND_PORT}
     depends_on:
       - db_postgres
     
