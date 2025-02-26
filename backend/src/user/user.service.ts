@@ -38,21 +38,21 @@ export class UserService {
 
   async createUser(dto: CreateUserDto): Promise<User> {
     try {
+      console.log('createUser', dto);
       const isUserExist = await this.getUserByEmail(dto.email);
       if (isUserExist) {
         throw new BadRequestException('User with this email already exists');
       }
-
+      console.log('isUserExist', isUserExist);
       const newUser = await this.prisma.user.create({
         data: {
           email: dto.email,
-          password: hashPassword(dto.password),
+          picture: '/uploads/default-user-img.png',
           name: dto.name,
-          picture: dto.picture || '/uploads/default-user-img.png',
+          password: await hashPassword(dto.password),
         },
-      });
-
-      // Remove password from response
+      }); // and then nothing returns. we a problem that prisma doing fucking nothing
+      console.log('newUser', newUser);
       const { password: _, ...userWithoutPassword } = newUser;
       return userWithoutPassword as User;
     } catch (error) {
